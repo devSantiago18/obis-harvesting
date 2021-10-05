@@ -60,7 +60,8 @@ def by_dataset():
     #    'noInv' : datasets_no_inv,
     #    'errors' : errors
     #})
-
+def insert_data(datasets):
+    pass
 
 @app.route('/get/<size>/<count>')
 def get_occurrences(size, count):
@@ -78,9 +79,9 @@ def get_occurrences(size, count):
     count = int(count)
     flag_next = False
     datasets_no_inv = by_dataset()
+    others_occ = []
     while count > 0:
         
-        others_occ = []
         if flag_next:
             inicio_request = time.time()
             print('antes de la peticion')
@@ -114,18 +115,19 @@ def get_occurrences(size, count):
         proceso_fin = time.time()
         print('tiempo del proceso', proceso_fin - proceso_ini)
         print('Ultima peticion : {}'.format(URL_OBI + f'&size={str(size)}' + f'&after={last_id}'))
-        print('escribiendo archivo')
-        with open('data.json', 'a') as file:
+        count -= 1
+
+        with open('data.json', 'a+') as file:
             file.write(json.dumps(others_occ))
 
-        count -= 1
     total_fin = time.time()
     print("Ya se acabo primo  ", total_fin - total_inicio)
 
     return jsonify({
         'len_others' : counter_other,
         #'inv'    : inv_occ,
-        'len_inv' : counter_inv
+        'len_inv' : counter_inv,
+        #'occurrences_others' : others_occ
     })
         
 
