@@ -20,8 +20,8 @@ INV_CODES = [
    
 pattern = '(INVEMAR|NIT:800250062|MHNMC)'
 
-#@app.route('/bydataset')
-def by_dataset():
+@app.route('/bydataset')  
+def inspect_dataset():
     """ 
         Funcion que retorna una lista de id de los datasets 
         que pertenecen al area de colombia, 
@@ -32,62 +32,127 @@ def by_dataset():
 
     url = 'https://api.obis.org/v3/dataset?areaid=41'
     response = requests.get( url )
-    datasets_nov_inv = [] # lista de ids de datasets que no son de invemar
-    datasets = [{x['id'] : x['institutes'] } for x in response.json()['results']]
-    for obj in datasets:
-        for key in obj:
-            if obj[key] == None:
-                datasets_nov_inv.append(key)
-                #print(key, obj[key])
-            if type(obj[key]) == list:
-                flag_nov = False # bandera para saber si ninguno de los elemenos del elemento contiene los codigos de inv
-                for element in obj[key]:
-                    if element['oceanexpert_id'] in CODIGOS_INV_DATASETS:
-                        flag_nov = True #
-                        #print(key, obj[key])
-                        print()  
-                if not flag_nov:
-                    #print(key, obj[key])
-                    datasets_nov_inv.append(key)
-    #return jsonify( len(datasets_nov_inv ))
+    
     #return response.json()
-    return datasets_nov_inv
+    dic_resp = response.json()['results']
+    datasets = [{x['id'] : x['institutes'] } for x in response.json()['results']]
+    
+    titulos_inv_datasets = []
+    titulos_noinv_datasets = []
+    
+    datasets_nullos = []
     datasets_inv = []
-    datasets_no_inv = []
-    errors = []
-    for data in datasets:
-        value = 0
-        try:
-            i = len(data['institutes'])
-            values = []
-            for x in range(i):
-                #print('pos: ' , x, i)
-                #print(data['institutes'])
-                try:
-                    val = int(data['institutes'][i - 1]['oceanexpert_id'])
-                except TypeError:
-                    val = 0
-                values.append(val)
-            if [x for x in values if x not in CODIGOS_INV_DATASETS] != []:
-                #datasets_no_inv.append( {data['id'] : data['institutes']} )
-                datasets_no_inv.append( data['id'] )
+    datasets_nov_inv = [] 
+    datasets_errors = []
+    
+    for data_set in dic_resp:
+        title = data_set['title']
+        id_dataset = data_set['id']
+        institutes = data_set['institutes']
+        if institutes == None:
+            datasets_nullos.append([id_dataset, title])
+        elif type(institutes) == list:
+            flag = False
+            for instituto in institutes:
+                if instituto['oceanexpert_id'] not in CODIGOS_INV_DATASETS:
+                    flag = True
+            if flag:
+                datasets_nov_inv.append([id_dataset, title])
             else:
-                datasets_inv.append( data['id'] )
-                #datasets_inv.append( {data['id'] : data['institutes']} )
-        except TypeError:
-            #datasets_no_inv.append( {data['id'] : data['institutes']} )   
-            datasets_no_inv.append( data['id'])   
-    return datasets_no_inv
+                datasets_inv.append([id_dataset, title])
+        else:
+            print('este, nada')
+            print([id_dataset, title])
+            datasets_errors([id_dataset, title])
+    
+    with open('nulos.csv', 'w', encoding='utf-8') as file:
+        for x in datasets_nullos:
+            file.write("{},{}\n".format(x[0], x[1]))
+    with open('inv.csv', 'w', encoding='utf-8') as file:
+        for x in datasets_inv:
+            file.write("{},{}\n".format(x[0], x[1]))
+    with open('noinv.csv', 'w', encoding='utf-8') as file:
+        for x in datasets_nov_inv:
+            file.write("{},{}\n".format(x[0], x[1]))
+            
+    return datasets_nov_inv
+    return jsonify({
+        'len no inv' : len(datasets_nov_inv), 
+        'datasets no inv' : datasets_nov_inv, 
+        'len inv' : len(datasets_inv),
+        'datasets inv' : datasets_inv,
+        'len null' : len(datasets_nullos),
+        'datasets null' : datasets_nullos,
+        'len errors' : len(datasets_errors),
+        'datasets errors' : datasets_errors,
+        })
+    for data_obj in datasets:
+        for data_id in data_obj:
+            flag = False # bandera para saber si un dataset es de inv
+            
+            if data_obj[data_id] == None:
+                datasets_nov_inv.append(data_id)
+            elif type(data_obj[data_id]) == list:
+                for institue in data_obj[data_id]:
+                    if institue['oceanexpert_id'] in CODIGOS_INV_DATASETS:
+                        flag = True
+                if not flag:
+                    datasets_nov_inv.append(data_id)
+    
+    return datasets_nov_inv
 
 
-@app.route('/get/v2/<size>/<count>')
-def get_v2(size, count):
-    no_inv_datasets = by_dataset()
+    
+
+@app.route('/get/v3/<size>/<count>')
+def var(size, count):
+    url = 'https://api.obis.org/occurrence?areaid=41'
+    response = requests.get( url + f'&size={size}')
+    dic_resp = response.json()['results']
+    final_vars = []
+    flag_next = False
+    others_occ = []
+    especials =[]
+    i = 1
+    total = 0
+    #datasets_id que no son de invemar
+    datasets_id_valid = inspect_dataset()
+    
+    count = int(count)
+    while count > 0:
+        print('peticion no: ', i)
+        i +=1
+        last_id = dic_resp[-1]['id'] # ultimo id
+        if flag_next:
+            # inicio_request = time.time()
+            # print('antes de la peticion')
+            response = requests.get( url + f'&size={str(size)}' + f'&after={last_id}' )
+            # fin_request = time.time()
+            # print('Tiempo de la request ', fin_request - inicio_request)
+            dic_resp = response.json()['results']
+
+        if dic_resp == []: # cuando no se encuentran occurencias se devuelbe una [] vacia
+            print('Ultima peticion : {}'.format(url + f'&size={str(size)}' + f'&after={last_id}'))
+            print('Ultimo result {}'.format(dic_resp))
+            print('Ultimo id {}'.format(last_id))
+            print('Fin de las peticiones')
+            break
+
+
+        for occ in dic_resp:
+            total += 1
+            if occ['dataset_id'] in datasets_id_valid:
+                others_occ.append(occ)
+        count -= 1
+    
+    print('Cantida ', len(others_occ))
+    print('Total : ', total)
+    return jsonify(others_occ)
 
 
 @app.route('/test')
 def test():
-    no_inv_datasets = by_dataset()
+    no_inv_datasets = inspect_dataset()
     print(len(no_inv_datasets))
     occ_no_inv = []
     i = 1
@@ -124,7 +189,7 @@ def get_occurrences(size, count):
     counter_other  = 0 # cuantas occurencias no son de inv
     count = int(count) # cuantas vueltas da el codigo haciendo [size] peticiones
     flag_next = False
-    datasets_no_inv = by_dataset() # obtengo la lista de id de datasets que no son de inv
+    datasets_no_inv = inspect_dataset() # obtengo la lista de id de datasets que no son de inv
     others_occ = []
 
     while count > 0:
@@ -182,10 +247,14 @@ def get_occurrences(size, count):
 
 @app.route('/byid/<id>')
 def get_occurrence_by_id(id):
-    res = requests.get(URL_OBI + '&id=' + id)
+    print('id :', id)
+    res = requests.get('https://api.obis.org/v3/occurrence/' + id)
     return res.json()
 
-
+@app.route('/bydataset-id/<id>')
+def get_occurrence_by_dataset(id):
+    response = requests.get( 'https://api.obis.org/v3/dataset/' + id)
+    return response.json()
 
 
 if __name__ == '__main__':
