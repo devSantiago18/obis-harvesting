@@ -7,7 +7,73 @@ from flask import jsonify
 # variables que tienen en comun todas las occurrencias
 # l = ['scientificName', 'dropped', 'aphiaID', 'decimalLatitude', 'basisOfRecord', 'id', 'dataset_id', 'decimalLongitude', 'absence', 'originalScientificName', 'kingdom', 'kingdomid', 'node_id', 'shoredistance', 'bathymetry']
 
+def get_datasets_ids():
+    """ Funcion que retorna una lista de id de datasets que no tienen como instituo a invemar """
+    # codigos de datasets de  invemar
+    CODIGOS_INV_DATASETS = [17925, 18300]
+
+    url = 'https://api.obis.org/v3/dataset?areaid=41'
+    response = requests.get( url )
+    
+    #return response.json()
+    dic_resp = response.json()['results']
+    datasets = [{x['id'] : x['institutes'] } for x in response.json()['results']]
+    
+    titulos_inv_datasets = []
+    titulos_noinv_datasets = []
+    
+    datasets_nullos = []
+    datasets_inv = []
+    datasets_nov_inv = [] 
+    datasets_errors = []
+    
+    for data_set in dic_resp:
+        title = data_set['title']
+        id_dataset = data_set['id']
+        institutes = data_set['institutes']
+        if institutes == None:
+            datasets_nullos.append([id_dataset, title])
+        elif type(institutes) == list:
+            flag = False
+            for instituto in institutes:
+                if instituto['oceanexpert_id'] not in CODIGOS_INV_DATASETS:
+                    flag = True
+            if flag:
+                datasets_nov_inv.append([id_dataset, title])
+            else:
+                datasets_inv.append([id_dataset, title])
+        else:
+            print('este, nada')
+            print([id_dataset, title])
+            datasets_errors([id_dataset, title])
+    
+    with open('nulos.csv', 'w', encoding='utf-8') as file:
+        for x in datasets_nullos:
+            file.write("{},{}\n".format(x[0], x[1]))
+    with open('inv.csv', 'w', encoding='utf-8') as file:
+        for x in datasets_inv:
+            file.write("{},{}\n".format(x[0], x[1]))
+    with open('noinv.csv', 'w', encoding='utf-8') as file:
+        for x in datasets_nov_inv:
+            file.write("{},{}\n".format(x[0], x[1]))
+            
+    return datasets_nov_inv
+    return jsonify({
+        'len no inv' : len(datasets_nov_inv), 
+        'datasets no inv' : datasets_nov_inv, 
+        'len inv' : len(datasets_inv),
+        'datasets inv' : datasets_inv,
+        'len null' : len(datasets_nullos),
+        'datasets null' : datasets_nullos,
+        'len errors' : len(datasets_errors),
+        'datasets errors' : datasets_errors,
+        })
+    
+
+
+
 def var_to_discriminator(size, count):
+    """ Funcion que retorna una lista de variables que se repiten en todas las ocurrencias  """
     url = 'https://api.obis.org/occurrence?areaid=41'
     response = requests.get( url + f'&size={size}')
     dic_resp = response.json()['results']

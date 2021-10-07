@@ -5,7 +5,7 @@ import requests
 import re
 import time
 # instituteid=17925 
-
+import func
 app = Flask(__name__)
 
 URL_OBI  = 'https://api.obis.org/occurrence?areaid=41&'
@@ -86,22 +86,7 @@ def inspect_dataset():
         'len errors' : len(datasets_errors),
         'datasets errors' : datasets_errors,
         })
-    for data_obj in datasets:
-        for data_id in data_obj:
-            flag = False # bandera para saber si un dataset es de inv
-            
-            if data_obj[data_id] == None:
-                datasets_nov_inv.append(data_id)
-            elif type(data_obj[data_id]) == list:
-                for institue in data_obj[data_id]:
-                    if institue['oceanexpert_id'] in CODIGOS_INV_DATASETS:
-                        flag = True
-                if not flag:
-                    datasets_nov_inv.append(data_id)
     
-    return datasets_nov_inv
-
-
     
 
 @app.route('/get/v3/<size>/<count>')
@@ -116,7 +101,7 @@ def var(size, count):
     i = 1
     total = 0
     #datasets_id que no son de invemar
-    datasets_id_valid = inspect_dataset()
+    datasets_id_valid = func.get_datasets_ids()
     
     count = int(count)
     while count > 0:
