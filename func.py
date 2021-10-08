@@ -7,6 +7,52 @@ from flask import jsonify
 # variables que tienen en comun todas las occurrencias
 # l = ['scientificName', 'dropped', 'aphiaID', 'decimalLatitude', 'basisOfRecord', 'id', 'dataset_id', 'decimalLongitude', 'absence', 'originalScientificName', 'kingdom', 'kingdomid', 'node_id', 'shoredistance', 'bathymetry']
 
+datasets_id_inv = [
+'6b5c0712-d9c7-4e2f-b3a8-355ad2539081',
+'c683d802-a110-4043-95b3-3a20a7c57608',
+'08124763-5f33-485d-a3df-b6d502989ba4',
+'0b1ec148-693f-4517-b112-386e17956314',
+'f260b9a8-72a8-44fc-9ddc-383b7d7e54ff',
+'0569339f-a376-42f4-8453-49ab9932713d',
+'6142952e-7bbc-434f-a055-6bf140e6463d',
+'48e988d2-f5f2-4b69-a1a1-6fe06e0fbd29',
+'d79dbddb-aee1-4e33-82ef-58004f6603d7',
+'58480117-eefa-49e7-abee-bad994d9d91b',
+'dc590428-7a0e-4272-985e-b5ad279a245a',
+'6e18e05f-a198-49e2-a59d-edd721f5a677',
+'1d94f371-a3e5-4e9a-b48c-f26e864c7621',
+'754347ff-b193-4665-8fc1-9792e3c1da55',
+'573ef83d-6014-405c-b421-7c09505b179a',
+'20c5a1df-f8a1-4963-8b98-e8000de0f8bd',
+'9e3dea3d-6b47-4564-8616-14d54ffc153f',
+'be7a16ea-3e22-4365-b066-a0e96c52d2a6',
+'d070cf6e-287a-4fcd-83b2-92324fbced1c',
+'4b85acca-a155-4935-b679-9ee4ad4a8f7f',
+'51a6caf1-9c75-4dba-9ee5-f4f6226a78f3',
+'499dfc7b-a567-42b5-8c26-a017c87298e6',
+'3b06674d-555f-4a67-8bd2-ca9c9f0755a6',
+'0f17131c-6dad-43da-a559-fa009fdc3c54',
+'0b7920b4-c0f5-402a-9c6c-b00acf540483',
+'39566040-b33b-44f5-ad5a-d0bb8e4e9235',
+'7c3596a7-6709-48db-aeb8-111ab2ea6c6c',
+'6ea5869c-cb2f-495e-a99b-d100f1779109',
+'d7b10a4b-e588-4cf6-a5da-3064cab00af4',
+'e80bbf0a-9142-4ee8-8a2b-5a0ffebe06bc',
+'85fc9de0-2ac2-43e3-bda9-64ef66044bfb',
+'3f3a3f44-5734-4fa6-a62d-7f1c998a3259',
+'fc9cc04c-d9e6-4f5d-ba39-be3113f9f9ce',
+'95dcd908-a6b9-4422-a441-42caa46724f5',
+'4bbfb75e-7b41-4f8f-b475-051d8c21860a',
+]
+
+def discard_datasets():
+    url = 'https://api.obis.org/v3/dataset?areaid=41'
+    response = requests.get( url )
+    
+    dic_resp = response.json()['results']
+    
+    print(dic_resp)
+
 def get_datasets_ids():
     """ Funcion que retorna una lista de id de datasets que no tienen como instituo a invemar """
     # codigos de datasets de  invemar
@@ -154,7 +200,6 @@ def inspect_dataset():
           """.format(len(datasets_in), len(datasets_nov_inv)))
     return datasets_nov_inv
 
-inspect_dataset()
 
 
 

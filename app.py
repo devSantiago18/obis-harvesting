@@ -135,6 +135,23 @@ def var(size, count):
     return jsonify(others_occ)
 
 
+
+
+
+## vistas de pruebas
+@app.route('/byid/<id>')
+def get_occurrence_by_id(id):
+    print('id :', id)
+    res = requests.get('https://api.obis.org/v3/occurrence/' + id)
+    return res.json()
+
+@app.route('/bydataset-id/<id>')
+def get_occurrence_by_dataset(id):
+    response = requests.get( 'https://api.obis.org/v3/dataset/' + id)
+    return response.json()
+
+
+
 @app.route('/test')
 def test():
     no_inv_datasets = inspect_dataset()
@@ -154,92 +171,7 @@ def test():
         'total' : len(occ_no_inv),
         'occ' : occ_no_inv
         })
-    return response.json()
 
-@app.route('/get/<size>/<count>')
-def get_occurrences(size, count):
-    
-    total_inicio = time.time()
-    inicio_request = time.time()
-    print('antes de la peticion')
-
-    response = requests.get(URL_OBI  + f'&size={size}') 
-
-    fin_request = time.time()
-    print('Tiempo de la request ', fin_request - inicio_request)
-
-    dic_resp =  response.json()['results']
-    inv_occ = []
-    counter_inv  = 0 # cuantas occurencias son de inv
-    counter_other  = 0 # cuantas occurencias no son de inv
-    count = int(count) # cuantas vueltas da el codigo haciendo [size] peticiones
-    flag_next = False
-    datasets_no_inv = inspect_dataset() # obtengo la lista de id de datasets que no son de inv
-    others_occ = []
-
-    while count > 0:
-        
-        if flag_next:
-            inicio_request = time.time()
-            print('antes de la peticion')
-            response = requests.get( URL_OBI + f'&size={str(size)}' + f'&after={last_id}' )
-            fin_request = time.time()
-            print('Tiempo de la request ', fin_request - inicio_request)
-            dic_resp = response.json()['results']
-        
-        if dic_resp == []: # cuando no se encuentran occurencias se devuelbe una [] vacia
-            print('Ultima peticion : {}'.format(URL_OBI + f'&size={str(size)}' + f'&after={last_id}'))
-            print('Ultimo result {}'.format(dic_resp))
-            print('Ultimo id {}'.format(last_id))
-            print('Fin de las peticiones')
-            break
-
-        last_id = ''
-
-        print('antes del proceso')
-        proceso_ini = time.time()
-        for occ in dic_resp:
-            #flag = False
-            #return jsonify({'occurrencia_de_mierda' : occ, 'occurencias' : datasets_no_inv })
-            if occ['dataset_id'] in datasets_no_inv:
-                counter_other += 1
-                others_occ.append(occ)
-            else:
-                counter_inv += 1
-        if not flag_next : 
-            flag_next = True
-        
-        proceso_fin = time.time()
-        print('tiempo del proceso', proceso_fin - proceso_ini)
-        print('Ultima peticion : {}'.format(URL_OBI + f'&size={str(size)}' + f'&after={last_id}'))
-        count -= 1
-
-        with open('data.json', 'a+') as file:
-            file.write(json.dumps(others_occ))
-
-    total_fin = time.time()
-    print("Ya se acabo primo  ", total_fin - total_inicio)
-
-    return jsonify({
-        'len_others' : counter_other,
-        #'inv'    : inv_occ,
-        'len_inv' : counter_inv,
-        #'occurrences_others' : others_occ
-    })
-        
-
-
-
-@app.route('/byid/<id>')
-def get_occurrence_by_id(id):
-    print('id :', id)
-    res = requests.get('https://api.obis.org/v3/occurrence/' + id)
-    return res.json()
-
-@app.route('/bydataset-id/<id>')
-def get_occurrence_by_dataset(id):
-    response = requests.get( 'https://api.obis.org/v3/dataset/' + id)
-    return response.json()
 
 
 if __name__ == '__main__':

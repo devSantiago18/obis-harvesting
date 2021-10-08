@@ -1,0 +1,6 @@
+discard_datasets
+
+	Funcion que trae de la base de datos los datasets id de la tabla ____
+	luego los compara con los datasets id de obis den colombia (Areaid=41)
+	y descarta los que tengamos en registrados en la tabla
+	retornando una lista de datasets id que no tenemos registrados en la base de datos
