@@ -5,7 +5,23 @@ import json
 from flask import jsonify
 
 # variables que tienen en comun todas las occurrencias
-# l = ['scientificName', 'dropped', 'aphiaID', 'decimalLatitude', 'basisOfRecord', 'id', 'dataset_id', 'decimalLongitude', 'absence', 'originalScientificName', 'kingdom', 'kingdomid', 'node_id', 'shoredistance', 'bathymetry']
+# l = [
+    # 'scientificName', 
+    # 'dropped', 
+    # 'aphiaID', 
+    # 'decimalLatitude', 
+    # 'basisOfRecord', 
+    # 'id', 
+    # 'dataset_id', 
+    # 'decimalLongitude', 
+    # 'absence', 
+    # 'originalScientificName', 
+    # 'kingdom', 
+    # 'kingdomid', 
+    # 'node_id', 
+    # 'shoredistance', 
+    # 'bathymetry'
+    # ]
 
 datasets_id_inv = [
 '6b5c0712-d9c7-4e2f-b3a8-355ad2539081',
@@ -49,9 +65,24 @@ def discard_datasets():
     url = 'https://api.obis.org/v3/dataset?areaid=41'
     response = requests.get( url )
     
-    dic_resp = response.json()['results']
+    dic_resp = {x['id'] : x['title'] for x in response.json()['results']}
+    #valids = {x : dic_resp[x] for x in dic_resp if x not in datasets_id_inv}
+    v = {}
+    nv = {}
+    for datasetid in dic_resp:
+        if datasetid not in datasets_id_inv:
+            v[datasetid] = dic_resp[datasetid]
+            
+        else:
+            datasets_id_inv.remove( datasetid )
+            nv[datasetid] = dic_resp[datasetid]
     
-    print(dic_resp)
+    return v
+    print(' lis ', datasets_id_inv )
+    return {
+        'no validos' : nv,
+        'valids' : v
+    }
 
 def get_datasets_ids():
     """ Funcion que retorna una lista de id de datasets que no tienen como instituo a invemar """

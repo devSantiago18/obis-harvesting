@@ -94,24 +94,25 @@ def var(size, count):
     url = 'https://api.obis.org/occurrence?areaid=41'
     response = requests.get( url + f'&size={size}')
     dic_resp = response.json()['results']
-    final_vars = []
     flag_next = False
-    others_occ = []
-    especials =[]
+    news_occ = []
+    olders_occ = []
     i = 1
     total = 0
     #datasets_id que no son de invemar
-    datasets_id_valid = func.get_datasets_ids()
-    
+    datasets_id_valid = func.discard_datasets()
+    numeros_de_catalago = {}
+
     count = int(count)
     while count > 0:
+        to_write_json = {}
         print('peticion no: ', i)
         i +=1
         last_id = dic_resp[-1]['id'] # ultimo id
         if flag_next:
             # inicio_request = time.time()
             # print('antes de la peticion')
-            response = requests.get( url + f'&size={str(size)}' + f'&after={last_id}' )
+            response = requests.get( url + f'&size={size}' + f'&after={last_id}' )
             # fin_request = time.time()
             # print('Tiempo de la request ', fin_request - inicio_request)
             dic_resp = response.json()['results']
@@ -125,14 +126,31 @@ def var(size, count):
 
 
         for occ in dic_resp:
+            try:
+                numeros_de_catalago[occ['id']] = occ['catalogNumber']
+            except:
+                print('No tiene numero de catalog ', occ['id'] )
             total += 1
             if occ['dataset_id'] in datasets_id_valid:
-                others_occ.append(occ)
+                news_occ.append(occ)
+                to_write_json[occ['id']] = occ
+            else:
+                olders_occ.append(occ)
         count -= 1
+        flag_next = True #  flag to next request 
     
-    print('Cantida ', len(others_occ))
+    with open(f'./data/numerosCatalogo.json', 'w') as file:
+        file.write(json.dumps(numeros_de_catalago))
+        
+    # with open(f'./data/ocurrencias.json', 'w') as file:
+    #     file.write(json.dumps(news_occ))
+    
+    print('Cantida ', len(news_occ), '')
     print('Total : ', total)
-    return jsonify(others_occ)
+    return jsonify({
+        'inv' : olders_occ,
+        'news' : news_occ
+    })
 
 
 
