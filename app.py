@@ -89,20 +89,22 @@ def inspect_dataset():
     
     
 
-@app.route('/get/v3/<size>/<count>')
-def var(size, count):
+@app.route('/get/v3/<size>/<count>/<onlyInv>')
+def var(size, count, onlyInv):
     url = 'https://api.obis.org/occurrence?areaid=41'
     response = requests.get( url + f'&size={size}')
     dic_resp = response.json()['results']
     flag_next = False
     news_occ = []
     olders_occ = []
+    catalogNumbers = {}
     i = 1
     total = 0
     #datasets_id que no son de invemar
-    datasets_id_valid = func.discard_datasets()
-    numeros_de_catalago = {}
-
+    if onlyInv:
+        datasets_id_valid = func.discard_datasets(True)
+    else:
+        datasets_id_valid = func.discard_datasets()
     count = int(count)
     while count > 0:
         to_write_json = {}
@@ -126,11 +128,20 @@ def var(size, count):
 
 
         for occ in dic_resp:
-            try:
-                numeros_de_catalago[occ['id']] = occ['catalogNumber']
-            except:
-                print('No tiene numero de catalog ', occ['id'] )
+            
             total += 1
+            inv_flag = False
+            for var in occ:
+                if re.search(pattern, str(occ[var])):
+                    try:
+                        if occ['dataset_id'] in func.datasets_id_inv:
+                            catalogNumbers[occ['id']] = occ['catalogNumber']
+                    except:
+                        continue
+                        #catalogNumbers[occ['id']] = None
+                    finally:
+                        break
+                
             if occ['dataset_id'] in datasets_id_valid:
                 news_occ.append(occ)
                 to_write_json[occ['id']] = occ
@@ -140,8 +151,9 @@ def var(size, count):
         flag_next = True #  flag to next request 
     
     with open(f'./data/numerosCatalogo.json', 'w') as file:
-        file.write(json.dumps(numeros_de_catalago))
+        file.write(json.dumps(catalogNumbers))
         
+
     # with open(f'./data/ocurrencias.json', 'w') as file:
     #     file.write(json.dumps(news_occ))
     

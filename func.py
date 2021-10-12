@@ -61,7 +61,7 @@ datasets_id_inv = [
 '4bbfb75e-7b41-4f8f-b475-051d8c21860a',
 ]
 
-def discard_datasets():
+def discard_datasets(onlyInv):
     url = 'https://api.obis.org/v3/dataset?areaid=41'
     response = requests.get( url )
     
@@ -69,6 +69,11 @@ def discard_datasets():
     #valids = {x : dic_resp[x] for x in dic_resp if x not in datasets_id_inv}
     v = {}
     nv = {}
+    if onlyInv:
+        for datasetid in dic_resp:
+            v[datasetid] = dic_resp[datasetid]
+        return v
+    
     for datasetid in dic_resp:
         if datasetid not in datasets_id_inv:
             v[datasetid] = dic_resp[datasetid]
