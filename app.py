@@ -98,13 +98,14 @@ def var(size, count, onlyInv):
     news_occ = []
     olders_occ = []
     catalogNumbers = {}
+    to_write = ''
     i = 1
     total = 0
     #datasets_id que no son de invemar
-    if onlyInv:
+    if onlyInv == 'y':
         datasets_id_valid = func.discard_datasets(True)
     else:
-        datasets_id_valid = func.discard_datasets()
+        datasets_id_valid = func.discard_datasets(False)
     count = int(count)
     while count > 0:
         to_write_json = {}
@@ -132,31 +133,37 @@ def var(size, count, onlyInv):
             total += 1
             inv_flag = False
             for var in occ:
-                if re.search(pattern, str(occ[var])):
+                if occ['dataset_id'] in func.datasets_id_inv:
                     try:
-                        if occ['dataset_id'] in func.datasets_id_inv:
-                            catalogNumbers[occ['id']] = occ['catalogNumber']
+                        catalogNumbers[occ['id']] = occ['occurrenceID']
+                        id_ = occ['id'] if occ['id'] else None
+                        occ_id = occ['occurrenceID'] if occ['occurrenceID'] else None
+                        catalog_ = occ['catalogNumber'] if occ['catalogNumber'] else None
+                        to_write += '{},{},{}\n'.format(id_, occ_id, catalog_)
                     except:
                         continue
                         #catalogNumbers[occ['id']] = None
                     finally:
                         break
-                
+            
             if occ['dataset_id'] in datasets_id_valid:
                 news_occ.append(occ)
                 to_write_json[occ['id']] = occ
             else:
                 olders_occ.append(occ)
         count -= 1
+        
         flag_next = True #  flag to next request 
     
-    with open(f'./data/numerosCatalogo.json', 'w') as file:
-        file.write(json.dumps(catalogNumbers))
+    # with open(f'./data/numerosCatalogo.json', 'w') as file:
+    #     file.write(json.dumps(catalogNumbers))
         
-
-    # with open(f'./data/ocurrencias.json', 'w') as file:
-    #     file.write(json.dumps(news_occ))
+    print('LEN JSON', len(catalogNumbers) )
     
+    with open(f'./data/numerosCatalogoInv.txt', 'w') as file:
+        file.write(to_write)
+        
+        
     print('Cantida ', len(news_occ), '')
     print('Total : ', total)
     return jsonify({
