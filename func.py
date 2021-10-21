@@ -61,6 +61,13 @@ datasets_id_inv = [
 '4bbfb75e-7b41-4f8f-b475-051d8c21860a',
 ]
 
+# Esta funcion busca en OBIS [siempre que el parametro onlyInv sea False] todos los datasetsID que NO hagan parte de los que ya estan en el sibm
+# en caso de que se le pase como argumento un verdadero, traera todos los datasetsID que tenba OBIS en el areadID 41, incluyendo los que tenemos
+# ya en el SIBM
+# en conclusion retorna la lista de datasetsID dependiendo del parametro pasado
+#
+# NOTA: Se debe crear una tabla en la base de datos o una vista, pero debe haber una forma de consultar los datasetsID que pertenecen al SIBM
+#
 def discard_datasets(onlyInv = False):
     url = 'https://api.obis.org/v3/dataset?areaid=41'
     response = requests.get( url )
@@ -286,6 +293,26 @@ def var(size, count):
     print('Total : ', total)
     
 
+def datasets_with_title():
+    url = 'https://api.obis.org/v3/dataset'
+    datasets_names = {}
+    for datasetid in datasets_id_inv:
+        print('Peticion a : ' + url + '/' + datasetid)
+        response = requests.get( url + '/' + datasetid)
+        #return response.json()
+        dts_id = response.json()['results'][0]['id']
+        title = response.json()['results'][0]['title']
+        institutes = []
+        for institute in response.json()['results'][0]['institutes']: 
+            institutes.append(institute['name'])
+        if datasetid != dts_id:
+            datasets_names[datasetid] = {'otherID' : dts_id, 'title' : title, 'institutes': "|".join(institutes)}
+        else:
+            datasets_names[datasetid] = {'title' : title, 'institutes' : "|".join(institutes)}
+    return datasets_names
+
 
 
 #var(10000,30)
+if __name__ == '__main__':
+    datasets_with_title()

@@ -6,6 +6,7 @@ import re
 import time
 # instituteid=17925 
 import func
+import csv
 app = Flask(__name__)
 
 URL_OBI  = 'https://api.obis.org/occurrence?areaid=41&'
@@ -88,9 +89,20 @@ def inspect_dataset():
         })
     
     
-
+# Esta es la funcion principal del programa
+# cuando encedemos el servidor y hacemos una peticion GET a  localhosts:PORT/get/v3/<size>/<count>/<onlyInv>
+# donde tenemos 3 parametros variables:
+#   <size> : tamaño de occurrencias que hara por peticion
+#   <count> : numero de peticiones que se haran a obis
+#   <onlyInv>: este parametro es pasado como 'y' cuando queremos incluir en la consulta los datasets que ya se encuentran en el ipt del sibm
+#   
+# de tal manera que si consultamos
+#   localhosts:port/get/v3/10/4 --> esto nos traera 40 registros biologicos que NO hagan parte del sibm
+#   localhosts:port/get/v3/10/4/y --> esto nos traera 40 registros biologicos que pueden o no hacer parte del sibm
+#
 @app.route('/get/v3/<size>/<count>/<onlyInv>')
 def var(size, count, onlyInv):
+       
     url = 'https://api.obis.org/occurrence?areaid=41'
     response = requests.get( url + f'&size={size}')
     dic_resp = response.json()['results']
@@ -107,6 +119,8 @@ def var(size, count, onlyInv):
     else:
         datasets_id_valid = func.discard_datasets(False)
     count = int(count)
+    
+    to_write_csv = []
     while count > 0:
         to_write_json = {}
         print('peticion no: ', i)
@@ -129,22 +143,25 @@ def var(size, count, onlyInv):
 
 
         for occ in dic_resp:
-            
+            aux_list_csv = []
+            for var in occ:
+                aux_list_csv.append(occ[var])
+            to_write_csv.append(aux_list_csv)
             total += 1
             inv_flag = False
-            for var in occ:
-                if occ['dataset_id'] in func.datasets_id_inv:
-                    try:
-                        catalogNumbers[occ['id']] = occ['occurrenceID']
-                        id_ = occ['id'] if occ['id'] else None
-                        occ_id = occ['occurrenceID'] if occ['occurrenceID'] else None
-                        catalog_ = occ['catalogNumber'] if occ['catalogNumber'] else None
-                        to_write += '{},{},{}\n'.format(id_, occ_id, catalog_)
-                    except:
-                        continue
-                        #catalogNumbers[occ['id']] = None
-                    finally:
-                        break
+            # for var in occ:
+            #     if occ['dataset_id'] in func.datasets_id_inv:
+            #         try:
+            #             catalogNumbers[occ['id']] = occ['occurrenceID']
+            #             id_ = occ['id'] if occ['id'] else None
+            #             occ_id = occ['occurrenceID'] if occ['occurrenceID'] else None
+            #             catalog_ = occ['catalogNumber'] if occ['catalogNumber'] else None
+            #             to_write += '{},{},{}\n'.format(id_, occ_id, catalog_)
+            #         except:
+            #             continue
+            #             #catalogNumbers[occ['id']] = None
+            #         finally:
+            #             break
             
             if occ['dataset_id'] in datasets_id_valid:
                 news_occ.append(occ)
@@ -160,9 +177,12 @@ def var(size, count, onlyInv):
         
     print('LEN JSON', len(catalogNumbers) )
     
-    with open(f'./data/numerosCatalogoInv.txt', 'w') as file:
-        file.write(to_write)
+    # with open(f'./data/obis.txt', 'w') as file:
+    #     file.write(to_write)
         
+    with open('data/obis_csv2.csv', 'w', encoding='utf-8', newline='') as file:
+        write = csv.writer(file, delimiter='|')
+        write.writerows(to_write_csv)
         
     print('Cantida ', len(news_occ), '')
     print('Total : ', total)
@@ -191,24 +211,11 @@ def get_occurrence_by_dataset(id):
 
 @app.route('/test')
 def test():
-    no_inv_datasets = inspect_dataset()
-    print(len(no_inv_datasets))
-    occ_no_inv = []
-    i = 1
-    for dataset_id in no_inv_datasets:
-        print('Peticion no: {} para el datasetId {}'.format(i, dataset_id))
-        t_i = time.time()
-        
-        response = requests.get(URL_OBI  + f'&datasetid={dataset_id}') 
-        
-        print('timepo de la peticion {}'.format(time.time() - t_i))
-        occ_no_inv += response.json()['results']
-        i +=1
+    d = func.datasets_with_title()
     return jsonify({
-        'total' : len(occ_no_inv),
-        'occ' : occ_no_inv
-        })
-
+        'datasets' : d,
+        'len': len(d) 
+    })
 
 
 if __name__ == '__main__':
