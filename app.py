@@ -102,7 +102,17 @@ def inspect_dataset():
 #
 @app.route('/get/v3/<size>/<count>/<onlyInv>')
 def var(size, count, onlyInv):
+    
+    # traemos la lista de nombres de variables
+    all_name_vars = []
+    with open('data/variables_obis.csv', 'r') as file:
+        reader = csv.reader(file, delimiter=',')
+        for row in reader:
+            all_name_vars.append(row[0])
+            #print('adding {} to the list'.format(row[0]))
        
+    #return jsonify({'vars' : all_name_vars})
+
     url = 'https://api.obis.org/occurrence?areaid=41'
     response = requests.get( url + f'&size={size}')
     dic_resp = response.json()['results']
@@ -143,10 +153,10 @@ def var(size, count, onlyInv):
 
 
         for occ in dic_resp:
-            aux_list_csv = []
-            for var in occ:
-                aux_list_csv.append(occ[var])
-            to_write_csv.append(aux_list_csv)
+            # aux_list_csv = []
+            # for var in occ:
+            #     aux_list_csv.append(occ[var])
+            # to_write_csv.append(aux_list_csv)
             total += 1
             inv_flag = False
             # for var in occ:
@@ -164,8 +174,18 @@ def var(size, count, onlyInv):
             #             break
             
             if occ['dataset_id'] in datasets_id_valid:
-                news_occ.append(occ)
-                to_write_json[occ['id']] = occ
+                aux_occ = {} # diccionario auxiliar de occurencias para que las variables que no tenga esta ocurrencia se pasen en un str vacio ''
+                occ_values = [] # 
+                for var in all_name_vars:
+                    if var not in occ.keys():
+                        aux_occ[var] = ''
+                    else:
+                        aux_occ[var] = occ[var]
+                    occ_values.append(aux_occ[var])
+                    
+                news_occ.append(aux_occ) # lista a retornar 
+                to_write_json[occ['id']] = aux_occ # para escribir json
+                to_write_csv.append(occ_values) # para escribir los datos en csv
             else:
                 olders_occ.append(occ)
         count -= 1
@@ -182,6 +202,7 @@ def var(size, count, onlyInv):
         
     with open('data/obis_csv2.csv', 'w', encoding='utf-8', newline='') as file:
         write = csv.writer(file, delimiter='|')
+        write.writerow(all_name_vars)
         write.writerows(to_write_csv)
         
     print('Cantida ', len(news_occ), '')

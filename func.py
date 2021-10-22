@@ -3,7 +3,7 @@ import re
 import time
 import json
 from flask import jsonify
-
+import csv
 # variables que tienen en comun todas las occurrencias
 # l = [
     # 'scientificName', 
@@ -159,7 +159,47 @@ def get_datasets_ids():
         })
     
 
-
+def consult_obis_vars(size, count):
+    print('in')
+    count = int(count)
+    url = 'https://api.obis.org/occurrence?areaid=41'
+    ini_request = time.time()
+    print('inicio de la peticion 1')
+    response = requests.get( url + f'&size={size}')
+    fin_request = time.time()
+    print('fin de la peticion 1 {:.2f}'.format(fin_request - ini_request ))
+    dic_resp = response.json()['results']
+    flag_next = False
+    i = 1
+    all_vars = []
+    while count > 0:
+        try:
+            last_id = dic_resp[-1]['id'] # ultimo id
+        except:
+            with open('data/variables_obis.csv', 'w', encoding='utf-8', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerows(all_vars)
+            break
+        if flag_next:
+            ini_time = time.time()
+            print('inicio de la peticion {} '.format(i))
+            response = requests.get( url + f'&size={str(size)}' + f'&after={last_id}' )
+            print('fin de la peticion {} {:.2f}'.format(i , time.time() - ini_time))
+            dic_resp = response.json()['results']
+        else:
+            flag_next = True
+        for occ in dic_resp:
+            for k in occ:
+                if [k] not in all_vars:
+                    all_vars.append([k])
+        i += 1
+        count -= 1
+    
+    with open('data/variables_obis.csv', 'w', encoding='utf-8', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerows(all_vars)
+    print(all_vars)
+    
 
 def var_to_discriminator(size, count):
     """ Funcion que retorna una lista de variables que se repiten en todas las ocurrencias  """
@@ -315,4 +355,5 @@ def datasets_with_title():
 
 #var(10000,30)
 if __name__ == '__main__':
-    datasets_with_title()
+    #datasets_with_title()
+    consult_obis_vars(1000, 300)
