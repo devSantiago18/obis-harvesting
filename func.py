@@ -159,6 +159,9 @@ def get_datasets_ids():
         })
     
 
+
+# funcion que recorre todos las occurrencias del area 41 y al final graba un archivo csv con todas las variables posibless en los objetos dwc
+# implementar para que ademas de el scrapping tambien traiga las variables desde la BD
 def consult_obis_vars(size, count):
     print('in')
     count = int(count)
