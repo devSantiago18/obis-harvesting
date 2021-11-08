@@ -192,6 +192,12 @@ def var(size, count, onlyInv):
         
         flag_next = True #  flag to next request 
     
+    
+    
+    
+    ########################################################################
+    
+    
     # with open(f'./data/numerosCatalogo.json', 'w') as file:
     #     file.write(json.dumps(catalogNumbers))
         
@@ -211,6 +217,8 @@ def var(size, count, onlyInv):
         'inv' : olders_occ,
         'news' : news_occ
     })
+
+
 
 
 
