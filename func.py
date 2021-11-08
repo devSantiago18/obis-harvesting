@@ -6,20 +6,20 @@ from flask import jsonify
 import csv
 # variables que tienen en comun todas las occurrencias
 # l = [
-    # 'scientificName', 
-    # 'dropped', 
-    # 'aphiaID', 
-    # 'decimalLatitude', 
-    # 'basisOfRecord', 
-    # 'id', 
-    # 'dataset_id', 
-    # 'decimalLongitude', 
-    # 'absence', 
-    # 'originalScientificName', 
-    # 'kingdom', 
-    # 'kingdomid', 
-    # 'node_id', 
-    # 'shoredistance', 
+    # 'scientificName',
+    # 'dropped',
+    # 'aphiaID',
+    # 'decimalLatitude',
+    # 'basisOfRecord',
+    # 'id',
+    # 'dataset_id',
+    # 'decimalLongitude',
+    # 'absence',
+    # 'originalScientificName',
+    # 'kingdom',
+    # 'kingdomid',
+    # 'node_id',
+    # 'shoredistance',
     # 'bathymetry'
     # ]
 
@@ -69,32 +69,43 @@ datasets_id_inv = [
 # NOTA: Se debe crear una tabla en la base de datos o una vista, pero debe haber una forma de consultar los datasetsID que pertenecen al SIBM
 #
 def discard_datasets(onlyInv = False):
-    url = 'https://api.obis.org/v3/dataset?areaid=41'
-    response = requests.get( url )
-    
-    dic_resp = {x['id'] : x['title'] for x in response.json()['results']}
-    #valids = {x : dic_resp[x] for x in dic_resp if x not in datasets_id_inv}
-    v = {}
-    nv = {}
-    if onlyInv:
-        for datasetid in dic_resp:
-            v[datasetid] = dic_resp[datasetid]
-        return v
-    
-    for datasetid in dic_resp:
-        if datasetid not in datasets_id_inv:
-            v[datasetid] = dic_resp[datasetid]
-            
+    #areas_harvesting = [41, 127]
+    areas_harvesting = [41]
+    CODIGOS_INV_DATASETS = [17925, 18300]
+    total = 0
+    datasets_validos = []
+    for area in areas_harvesting:
+        url = 'https://api.obis.org/v3/dataset?areaid=' + str(area)
+        print('\n\n\n')
+        print(url)
+        response = requests.get( url )
+        print('total datasets ', response.json()['total'])
+        
+        dic_resp = {x['id'] : x['citation_id'] for x in response.json()['results']}
+        v = {}
+        nv = {}
+        
+        if onlyInv:
+            for datasetid in dic_resp:
+                #v[datasetid] = dic_resp[datasetid]
+                if dic_resp[datasetid] is not None:
+                    datasets_validos.append(( datasetid ,  dic_resp[datasetid] ))
         else:
-            datasets_id_inv.remove( datasetid )
-            nv[datasetid] = dic_resp[datasetid]
-    
-    return v
-    print(' lis ', datasets_id_inv )
-    return {
-        'no validos' : nv,
-        'valids' : v
-    }
+            for datasetid in dic_resp:
+                if datasetid not in datasets_id_inv:
+                    if dic_resp[datasetid] is not None:
+                        datasets_validos.append(( datasetid ,  dic_resp[datasetid] ))
+                # else:
+                #     datasets_id_inv.remove( datasetid )
+                #     nv[datasetid] = dic_resp[datasetid]
+    return datasets_validos
+
+
+
+
+
+
+
 
 def get_datasets_ids():
     """ Funcion que retorna una lista de id de datasets que no tienen como instituo a invemar """
@@ -103,19 +114,19 @@ def get_datasets_ids():
 
     url = 'https://api.obis.org/v3/dataset?areaid=41'
     response = requests.get( url )
-    
+
     #return response.json()
     dic_resp = response.json()['results']
     datasets = [{x['id'] : x['institutes'] } for x in response.json()['results']]
-    
+
     titulos_inv_datasets = []
     titulos_noinv_datasets = []
-    
+
     datasets_nullos = []
     datasets_inv = []
-    datasets_nov_inv = [] 
+    datasets_nov_inv = []
     datasets_errors = []
-    
+
     for data_set in dic_resp:
         title = data_set['title']
         id_dataset = data_set['id']
@@ -135,7 +146,7 @@ def get_datasets_ids():
             print('este, nada')
             print([id_dataset, title])
             datasets_errors([id_dataset, title])
-    
+
     with open('nulos.csv', 'w', encoding='utf-8') as file:
         for x in datasets_nullos:
             file.write("{},{}\n".format(x[0], x[1]))
@@ -145,11 +156,11 @@ def get_datasets_ids():
     with open('noinv.csv', 'w', encoding='utf-8') as file:
         for x in datasets_nov_inv:
             file.write("{},{}\n".format(x[0], x[1]))
-            
+
     return datasets_nov_inv
     return jsonify({
-        'len no inv' : len(datasets_nov_inv), 
-        'datasets no inv' : datasets_nov_inv, 
+        'len no inv' : len(datasets_nov_inv),
+        'datasets no inv' : datasets_nov_inv,
         'len inv' : len(datasets_inv),
         'datasets inv' : datasets_inv,
         'len null' : len(datasets_nullos),
@@ -157,7 +168,7 @@ def get_datasets_ids():
         'len errors' : len(datasets_errors),
         'datasets errors' : datasets_errors,
         })
-    
+
 
 
 # funcion que recorre todos las occurrencias del area 41 y al final graba un archivo csv con todas las variables posibless en los objetos dwc
@@ -197,12 +208,12 @@ def consult_obis_vars(size, count):
                     all_vars.append([k])
         i += 1
         count -= 1
-    
+
     with open('data/variables_obis.csv', 'w', encoding='utf-8', newline='') as file:
         writer = csv.writer(file)
         writer.writerows(all_vars)
     print(all_vars)
-    
+
 
 def var_to_discriminator(size, count):
     """ Funcion que retorna una lista de variables que se repiten en todas las ocurrencias  """
@@ -233,26 +244,26 @@ def var_to_discriminator(size, count):
     print(keys_obis)
     print('len ',len(keys_obis))
 
-#var_to_discriminator(10000,30) 
-    
+#var_to_discriminator(10000,30)
+
 def inspect_dataset():
-    """ 
-   
+    """
+
     """
     # codigos de datasets de  invemar
     CODIGOS_INV_DATASETS = [17925, 18300]
 
     url = 'https://api.obis.org/v3/dataset?areaid=41'
     response = requests.get( url )
-    
+
     #return response.json()
-    
+
     datasets_nov_inv = [] # lista de ids de datasets que no son de invemar
     datasets_in = []
     dic_response = response.json()['results']
     datasets = [{x['id'] : x['institutes'] } for x in response.json()['results']]
     datasets2 = {}
-    for x in dic_response: 
+    for x in dic_response:
         datasets2[x['id']] = x['title']
         print( '{} {} '.format(x['id'], x['title']))
     for data_obj in datasets:
@@ -260,18 +271,18 @@ def inspect_dataset():
             flag = False # bandera para saber si un dataset es de inv
             # print(data_obj)
             # break
-            
+
             if data_obj[data_id] == None:
                 datasets_nov_inv.append([data_id, datasets2[data_id]])
             elif type(data_obj[data_id]) == list:
-                
+
                 for institue in data_obj[data_id]:
                     if institue['oceanexpert_id'] in CODIGOS_INV_DATASETS:
                         flag = True
                 if not flag:
                     print('to insert ', datasets2[data_id])
                     datasets_nov_inv.append([data_id, datasets2[data_id]])
-                else:  
+                else:
                     datasets_in.append([data_id, datasets2[data_id]])
     print(' no invemar')
     for noIn in datasets_nov_inv:
@@ -279,8 +290,8 @@ def inspect_dataset():
     print('invemar')
     for noIn in datasets_in:
         print( '{},{},'.format(noIn[0], noIn[1]) )
-        
-    print(""" 
+
+    print("""
           de invemar {}
           fuera de invemar {}
           """.format(len(datasets_in), len(datasets_nov_inv)))
@@ -302,9 +313,9 @@ def var(size, count):
     total = 0
     #datasets_id que no son de invemar
     datasets_id_valid = inspect_dataset()
-    
-    # list de 
-    
+
+    # list de
+
     #print(len(keys_obis))
     while count > 0:
         print('peticion no: ', i)
@@ -334,7 +345,7 @@ def var(size, count):
     print(others_occ)
     print('Cantida ', len(others_occ))
     print('Total : ', total)
-    
+
 
 def datasets_with_title():
     url = 'https://api.obis.org/v3/dataset'
@@ -346,7 +357,7 @@ def datasets_with_title():
         dts_id = response.json()['results'][0]['id']
         title = response.json()['results'][0]['title']
         institutes = []
-        for institute in response.json()['results'][0]['institutes']: 
+        for institute in response.json()['results'][0]['institutes']:
             institutes.append(institute['name'])
         if datasetid != dts_id:
             datasets_names[datasetid] = {'otherID' : dts_id, 'title' : title, 'institutes': "|".join(institutes)}
@@ -358,5 +369,7 @@ def datasets_with_title():
 
 #var(10000,30)
 if __name__ == '__main__':
+    pass
     #datasets_with_title()
-    consult_obis_vars(1000, 300)
+    #consult_obis_vars(1000, 300)
+    #discard_datasets()

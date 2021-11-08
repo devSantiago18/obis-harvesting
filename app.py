@@ -6,6 +6,7 @@ import re
 import time
 # instituteid=17925 
 import func
+import sql_scripts
 import csv
 app = Flask(__name__)
 
@@ -20,6 +21,61 @@ INV_CODES = [
 ]
    
 pattern = '(INVEMAR|NIT:800250062|MHNMC)'
+
+
+@app.route('/harvesting')
+def harvesting():
+    datasets_validos = func.discard_datasets()
+    print('datasets validos ', len(datasets_validos))
+    total = 0
+    i = 0
+    for dataset in datasets_validos:
+        
+        occurrences = []
+        max_size = 10000
+        dataset_id, doi = dataset
+        url = "https://api.obis.org/v3/occurrence?areaid=41&datasetid=" + dataset_id
+        response = requests.get(url)
+        size = response.json()['total']
+        total += size
+        # print('Datasetid : ', dataset_id)
+        # print('doi : ', doi)
+        # print('size: ', size)
+        
+        while True:
+            break
+            if size <= max_size:
+                url2 = url + f'&size={size}'
+                print("url menos de 10000 ::  ", url2)
+                response2 = requests.get(url2)
+                occurrences.extend(response2.json()['results'])
+                break # este break rompe el while infinito cuando encuentra que el numero de ocrruencias en el datasets es menos a 10.000 y puede traerlas en una sola peticion
+            elif size > max_size:
+                size -= max_size
+                url2 = url + f'&size={max_size}'
+                print("url mas de 10000 ::  ", url2)
+                response2 = requests.get(url2)
+                #return response2.json()
+                occurrences.extend(response2.json()['results'])
+                #for x in response.json()['results']: 
+                    # tratar de insertar x
+                    #pass
+        
+        sql_scripts.insert_data(occurrences, doi)
+        break
+    print("total ",total)
+            #if i == 2: exit
+            
+    return jsonify({
+        'occurrencias' : 'ok'
+    })
+        
+    print('Total: ', total)
+            
+        
+
+
+
 
 @app.route('/bydataset')  
 def inspect_dataset():
