@@ -248,10 +248,11 @@ def n():
 
     list_db_vars = []
     for row in cursor:
+        print('row query: ', row)
         list_db_vars.append(row[0])
         
     #print(list_db_vars)
-    
+    print('\n===========================')
     in_db = []
     out_db = []
     for x in vars_obis:
@@ -312,11 +313,17 @@ def insert_data(dataset, doi):
     #     connection.commit()
     # except :
     #     print("Error insertando fila")
+    
     #print(dataset)
+    #sql_insert_detalle = """INSERT INTO cmdwc_detalles (id_valor, id_fila, variable, valor) VALUES (:1,:2,:3,:4)"""
     var_dict = create_dic_var()
     for occ in dataset:
+        i = 0
         for key in occ:
-            print('{} : {} : {}'.format(var_dict[key], key, occ[key]))
+            id_valor = str(i) + '0' + str(timestamp)
+            variable = var_dict[key]
+            print("{}:{}:{}:{}".format(id_valor, timestamp, variable, occ[key]))
+            #cursor.execute(sql_insert_detalle, (id_valor, timestamp, variable, occ[key]))
         
     
     connection.close()
@@ -325,4 +332,5 @@ def insert_data(dataset, doi):
 
 if __name__ == '__main__':
     #create_dic_var()
-    n()
+    #create_dic_var()
+    pass
