@@ -3,7 +3,7 @@ from datetime import datetime
 import func
 
 
-IP_DIR = '10.0.1.101'
+IP_DIR = '192.168.3.70'
 PORT = '1521'
 SID ='SCI'
 
@@ -20,14 +20,14 @@ def n():
 
     list_db_vars = []
     for row in cursor:
-        list_db_vars.append(row[0].upper())
+        list_db_vars.append(row[0])
         
     #print(list_db_vars)
     keys_obis = ['country', 'date_year', 'habitat', 'institutionID', 'scientificNameID', 'year', 'scientificName', 'county', 'dropped', 'hab', 'aphiaID', 'language', 'decimalLatitude', 'type', 'locationAccordingTo', 'occurrenceStatus', 'basisOfRecord', 'terrestrial', 'fieldNotes', 'nameAccordingToID', 'maximumDepthInMeters', 'id', 'day', 'verbatimEventDate', 'sampleSizeUnit', 'dataset_id', 'locality', 'stateProvince', 'decimalLongitude', 'verbatimLocality', 'date_end', 'occurrenceID', 'verbatimLatitude', 'date_start', 'month', 'samplingProtocol', 'parentEventID', 'eventDate', 'continent', 'eventID', 'brackish', 'scientificNameAuthorship', 'islandGroup', 'absence', 'samplingEffort', 'taxonRank', 'eventRemarks', 'originalScientificName', 'marine', 'minimumDepthInMeters', 'institutionCode', 'countryCode', 'verbatimLongitude', 'date_mid', 'nameAccordingTo', 'datasetName', 'geodeticDatum', 'taxonomicStatus', 'kingdom', 'waterBody', 'previousIdentifications', 'locationID', 'datasetID', 'kingdomid', 'sampleSizeValue', 'node_id', 'sss', 'depth', 'shoredistance', 'sst', 'bathymetry']
     in_db = []
     out_db = []
     for x in keys_obis:
-        if x.upper() not in list_db_vars:
+        if x not in list_db_vars:
             out_db.append(x)
         else:
             in_db.append(x)
@@ -51,7 +51,13 @@ def create_dic_var():
     connection = cx_Oracle.connect(user='CURADOR', password='paque', dsn=dsn_connection,  nencoding = "UTF-8")
     cursor = connection.cursor()
 
+    var_dict = {}
+    vars_list_query =  cursor.execute('SELECT NOMBRE, ID_VARIABLE FROM CMDWC_VARIABLES')
+    for row in vars_list_query:
+        var_dict[row[0]] = row[1]
+    print(var_dict)
     connection.close()
+    return var_dict
 
 
 
@@ -72,14 +78,23 @@ def insert_data(dataset, doi):
     cursor = connection.cursor()
     
     # creamos el registro de la fila con su id unico y su nombre que es el doi
-    sql_insert_fila = 'INSERT INTO cmdwc_filas (id_fila, data_name) VALUES (:1, :2)'
-    try:
-        cursor.execute(sql_insert_fila, (timestamp, doi))
-        connection.commit()
-    except :
-        print("Error insertando fila")
-        
+    # sql_insert_fila = 'INSERT INTO cmdwc_filas (id_fila, data_name) VALUES (:1, :2)'
+    # try:
+    #     cursor.execute(sql_insert_fila, (timestamp, doi))
+    #     connection.commit()
+    # except :
+    #     print("Error insertando fila")
+    #print(dataset)
+    var_dict = create_dic_var()
     for occ in dataset:
-        pass
+        for key in occ:
+            print('{} : {} : {}'.format(var_dict[key], key, occ[key]))
+        
     
     connection.close()
+    
+
+
+if __name__ == '__main__':
+    #create_dic_var()
+    n()

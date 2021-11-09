@@ -367,9 +367,37 @@ def datasets_with_title():
 
 
 
+def get_all_vars():
+    vars_obis = set()
+    first_ = True
+    last_id = ""
+    i = 1
+    for x in range(30):
+        if first_:
+            url = 'https://api.obis.org/occurrence?areaid=41'
+            print(f'peticion {i}')
+            response = requests.get( url + f'&size={10000}')
+            dic_resp = response.json()['results']    
+            first_ = False
+            for occ in dic_resp:
+                for key in occ:
+                    vars_obis.add(key)
+                last_id = occ['id'] 
+        else:
+            url = 'https://api.obis.org/occurrence?areaid=41'
+            response = requests.get( url + f'&size={10000}' + f'&after={last_id}')
+            dic_resp = response.json()['results']    
+            print(f'peticion {i}')
+            for occ in dic_resp:
+                for key in occ:
+                    vars_obis.add(key)
+                last_id = occ['id'] 
+        i += 1
+    print(vars_obis)
+
 #var(10000,30)
 if __name__ == '__main__':
-    pass
+    get_all_vars()
     #datasets_with_title()
     #consult_obis_vars(1000, 300)
     #discard_datasets()

@@ -43,7 +43,6 @@ def harvesting():
         # print('size: ', size)
         
         while True:
-            break
             if size <= max_size:
                 url2 = url + f'&size={size}'
                 print("url menos de 10000 ::  ", url2)
@@ -52,7 +51,7 @@ def harvesting():
                 break # este break rompe el while infinito cuando encuentra que el numero de ocrruencias en el datasets es menos a 10.000 y puede traerlas en una sola peticion
             elif size > max_size:
                 size -= max_size
-                url2 = url + f'&size={max_size}'
+                url2 = url + f'&size={4}'
                 print("url mas de 10000 ::  ", url2)
                 response2 = requests.get(url2)
                 #return response2.json()
@@ -60,8 +59,10 @@ def harvesting():
                 #for x in response.json()['results']: 
                     # tratar de insertar x
                     #pass
+            break
         
-        sql_scripts.insert_data(occurrences, doi)
+        #print(occurrences[1])
+        sql_scripts.insert_data(occurrences[2:3], doi)
         break
     print("total ",total)
             #if i == 2: exit
