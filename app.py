@@ -25,46 +25,48 @@ pattern = '(INVEMAR|NIT:800250062|MHNMC)'
 
 @app.route('/harvesting')
 def harvesting():
-    datasets_validos = func.discard_datasets()
-    print('datasets validos ', len(datasets_validos))
+    datasets_validos = func.discard_datasets(False)
+    #print('datasets validos ', len(datasets_validos))
+    #print(datasets_validos)
     total = 0
     i = 0
+    dict_vars = sql_scripts.create_dic_var()
     for dataset in datasets_validos:
         
         occurrences = []
         max_size = 10000
-        dataset_id, doi = dataset
+        #print(dataset)
+        dataset_id, title, url_datasert = dataset
+        #print(dataset)
         url = "https://api.obis.org/v3/occurrence?areaid=41&datasetid=" + dataset_id
         response = requests.get(url)
         size = response.json()['total']
         total += size
+        #print('tamaño del dataset {}  :  {}'.format(dataset_id, size))
+        #print("total " , total)
         # print('Datasetid : ', dataset_id)
         # print('doi : ', doi)
         # print('size: ', size)
-        
+        last_one = ''
         while True:
             if size <= max_size:
-                url2 = url + f'&size={size}'
+                url2 = url + f'&size={size}&after={last_one}'
                 print("url menos de 10000 ::  ", url2)
                 response2 = requests.get(url2)
                 occurrences.extend(response2.json()['results'])
                 break # este break rompe el while infinito cuando encuentra que el numero de ocrruencias en el datasets es menos a 10.000 y puede traerlas en una sola peticion
             elif size > max_size:
                 size -= max_size
-                url2 = url + f'&size={4}'
+                url2 = url + f'&size={max_size}&after={last_one}'
                 print("url mas de 10000 ::  ", url2)
                 response2 = requests.get(url2)
-                #return response2.json()
                 occurrences.extend(response2.json()['results'])
-                #for x in response.json()['results']: 
-                    # tratar de insertar x
-                    #pass
-            break
+                last_one = response2.json()['results'][-1]['id']
+            
+              
+        sql_scripts.insert_data(occurrences, dataset_id, title, url_datasert, dict_vars)
         
-        #print(occurrences[1])
-        sql_scripts.insert_data(occurrences[2:3], doi)
-        break
-    print("total ",total)
+    print("total ", total)
             #if i == 2: exit
             
     return jsonify({

@@ -232,6 +232,7 @@ vars_obis = [
 'brackish']
 
 IP_DIR = '192.168.3.70'
+#IP_DIR = '10.0.1.101' # dev
 PORT = '1521'
 SID ='SCI'
 
@@ -240,11 +241,14 @@ def n():
     dsn_connection = cx_Oracle.makedsn('192.168.3.70', port='1521', sid='SCI')
     connection = cx_Oracle.connect(user='CURADOR', password='paque', dsn=dsn_connection,  nencoding = "UTF-8")
     cursor = connection.cursor()
+    TABLA_VARIABLES = "SD_DWC_VARIABLES_AUX" # dev
+    #TABLA_VARIABLES = "CMDWC_VARIABLES" # prod
+    
     sql = """SELECT NOMBRE FROM CMDWC_VARIABLES"""
 
 
 
-    cursor.execute('select nombre from cmdwc_variables')
+    cursor.execute('select nombre from :1', (TABLA_VARIABLES))
 
     list_db_vars = []
     for row in cursor:
@@ -284,49 +288,83 @@ def create_dic_var():
     vars_list_query =  cursor.execute('SELECT NOMBRE, ID_VARIABLE FROM CMDWC_VARIABLES')
     for row in vars_list_query:
         var_dict[row[0]] = row[1]
-    print(var_dict)
+    #print(var_dict)
     connection.close()
     return var_dict
 
 
 
 
-def insert_data(dataset, doi):
+def insert_data(occurrencias, dataset_id,title,  doi, var_dict):
     """ el parametro data debe corresponder a una lista de ocurrencias 
         [
             {occurrenceId : val1, dataset_id : val2, datasetId : val3}
             {occurrenceId : val1, dataset_id : val2, datasetId : val3}
         ]
     """
-    now = datetime.now()
-    timestamp = round(datetime.timestamp(now)* 1000)
+    string_error = ""
+    print(len(occurrencias))
+    print(doi)
+    print(title)
+    print(title)
+    print(dataset_id)
     
-    #dsn_connection = cx_Oracle.makedsn('192.168.3.70', port='1521', sid='SCI')
     dsn_connection = cx_Oracle.makedsn(IP_DIR, port=PORT, sid=SID)
     connection = cx_Oracle.connect(user='CURADOR', password='paque', dsn=dsn_connection,  nencoding = "UTF-8")
     cursor = connection.cursor()
     
-    # creamos el registro de la fila con su id unico y su nombre que es el doi
-    # sql_insert_fila = 'INSERT INTO cmdwc_filas (id_fila, data_name) VALUES (:1, :2)'
-    # try:
-    #     cursor.execute(sql_insert_fila, (timestamp, doi))
-    #     connection.commit()
-    # except :
-    #     print("Error insertando fila")
-    
-    #print(dataset)
-    #sql_insert_detalle = """INSERT INTO cmdwc_detalles (id_valor, id_fila, variable, valor) VALUES (:1,:2,:3,:4)"""
-    var_dict = create_dic_var()
-    for occ in dataset:
-        i = 0
-        for key in occ:
-            id_valor = str(i) + '0' + str(timestamp)
-            variable = var_dict[key]
-            print("{}:{}:{}:{}".format(id_valor, timestamp, variable, occ[key]))
-            #cursor.execute(sql_insert_detalle, (id_valor, timestamp, variable, occ[key]))
+    #creamos el registro de la fila con su id unico y su nombre que es el doi
+    sql_insert_fila = "INSERT INTO cmdwc_datasets (dataset_id, data_url, ext_name, fuente_dataset) VALUES (:1, :2, :3, :4)"
+    dataset_flag = False
+    try:
         
+        #print("to insert: {}, {}, {}".format(dataset_id, doi, title) )
+        cursor.execute(sql_insert_fila, [dataset_id, doi, title, 'OBIS'])
+        connection.commit()
+        print("inserto 1 fila {}".format(dataset_id))
+        dataset_flag = True
+    except :
+        print("Error insertando fila")
+        string_error += '\nError insertando fila {},{},{}'.format(dataset_id, doi, title)
     
+    
+    if dataset_flag:
+        sql_insert_detalle = """INSERT INTO cmdwc_occurrences (occurrence_id, dataset_id, variable, valor) VALUES (:1,:2,:3,:4)"""
+        insert_occ_flag = True # si hay algun error en 1 occurencia del datasert, esta bandera hace que no se haga el commint al db por lo tanto no se insetan datos en la base de datos
+        i = 1
+        occ_count = 1
+        for occ in occurrencias:
+            occurrence_id = occ['id']
+            for key in occ:
+                variable = var_dict[key]
+                valor = str(occ[key]) if len(str(occ[key])) < 500 else str(occ[key])[:500]
+                try:
+                    
+                    cursor.execute(sql_insert_detalle, (occurrence_id, dataset_id, variable, valor))
+                    #print("se inserto esta vaina {}:{}:{}:{}".format(occurrence_id, dataset_id, variable, occ[key]))
+                except cx_Oracle.Error as error:
+                    print("Error insertando 1 {} : {} : {} : {}".format(occurrence_id, dataset_id, variable, valor))
+                    print(error)
+                    string_error += "\nError insertando {}, {}, {}, {}".format(occurrence_id, dataset_id, int(variable), valor)
+                    insert_occ_flag = False
+                    return 0
+                i+=1
+            if insert_occ_flag:
+                try:
+                    print("Insertando occ {}".format(occ_count))
+                    occ_count += 1
+                    connection.commit()
+                    
+                except:
+                    print("error en el commint con las ocurrencias del dataset {}".format(dataset_id))
+                    
+                    return 0
+            
+    with open('./data/errores_harvesting.txt', 'a', encoding='utf-8') as file:
+        file.write(string_error)
+        
     connection.close()
+        
     
 
 
