@@ -293,6 +293,14 @@ def create_dic_var():
     return var_dict
 
 
+# Obtener todos los datasets id que existen en la base de datos para no re-insertarlos
+def datasets_id_inv():
+    dsn_connection = cx_Oracle.makedsn(IP_DIR, port=PORT, sid=SID)
+    connection = cx_Oracle.connect(user='CURADOR', password='paque', dsn=dsn_connection,  nencoding = "UTF-8")
+    cursor = connection.cursor()
+    datasets = [x for x in cursor.execute("SELECT DATASET_ID FROM CMDWC_DATASETS")]
+    print(datasets)
+    
 
 
 def insert_data(occurrencias, dataset_id,title,  doi, var_dict):
@@ -371,4 +379,4 @@ def insert_data(occurrencias, dataset_id,title,  doi, var_dict):
 if __name__ == '__main__':
     #create_dic_var()
     #create_dic_var()
-    pass
+    datasets_id_inv()

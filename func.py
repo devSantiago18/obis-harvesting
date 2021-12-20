@@ -22,7 +22,9 @@ import csv
     # 'shoredistance',
     # 'bathymetry'
     # ]
-
+def get_datasets_id():
+    
+    pass
 datasets_id_inv = [
 'da9b067b-7fa2-44a7-a1e9-075dc639f6ce',
 '537ef2a9-b403-41fe-93da-eba61bc9d5d8',
