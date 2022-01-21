@@ -312,7 +312,55 @@ def delete_dataset(dataset_id):
     connection = cx_Oracle.connect(user='CURADOR', password='paque', dsn=dsn_connection,  nencoding = "UTF-8")
     cursor = connection.cursor()
     cursor.execute("DELETE FROM cmdwc_datasets WHERE dataset_id = :1", [dataset_id])
+    connection.commit()
     
+    
+def insertar_dataset(dataset_id,title,  doi):
+    dsn_connection = cx_Oracle.makedsn(IP_DIR, port=PORT, sid=SID)
+    connection = cx_Oracle.connect(user='CURADOR', password='paque', dsn=dsn_connection,  nencoding = "UTF-8")
+    cursor = connection.cursor()
+    
+    sql_insert_fila = "INSERT INTO cmdwc_datasets (dataset_id, data_url, ext_name, fuente_dataset) VALUES (:1, :2, :3, :4)"
+    dataset_flag = False
+    try:
+        #print("to insert: {}, {}, {}".format(dataset_id, doi, title) )
+        cursor.execute(sql_insert_fila, [dataset_id, doi, title, 'OBIS'])
+        connection.commit()
+        print("inserto 1 fila {}".format(dataset_id))
+        return True
+    except :
+        print("Error insertando fila ", dataset_id)
+        return False
+    
+    
+def insert_occurrence(occurrencias, dataset_id,title,  doi, var_dict):
+    dsn_connection = cx_Oracle.makedsn(IP_DIR, port=PORT, sid=SID)
+    connection = cx_Oracle.connect(user='CURADOR', password='paque', dsn=dsn_connection,  nencoding = "UTF-8")
+    cursor = connection.cursor()
+    sql_insert_detalle = """INSERT INTO cmdwc_occurrences (occurrence_id, dataset_id, variable, valor) VALUES (:1,:2,:3,:4)"""
+    insert_occ_flag = True # si hay algun error en 1 occurencia del datasert, esta bandera hace que no se haga el commint al db por lo tanto no se insetan datos en la base de datos
+    i = 1
+    occ_count = 1
+    
+    for occ in occurrencias:
+        occurrence_id = occ['id']
+        for key in occ:
+            variable = var_dict[key]
+            valor = str(occ[key]) if len(str(occ[key])) < 500 else str(occ[key])[:500]
+            try:
+                
+                cursor.execute(sql_insert_detalle, (occurrence_id, dataset_id, variable, valor))
+                #print("se inserto esta vaina {}:{}:{}:{}".format(occurrence_id, dataset_id, variable, occ[key]))
+            except cx_Oracle.Error as error:
+                print("Error insertando 1 {} : {} : {} : {}".format(occurrence_id, dataset_id, variable, valor))
+                print(error)
+                insert_occ_flag = False
+                return 0
+            i+=1
+            
+    connection.commit()
+    
+        
     
 def insert_data(occurrencias, dataset_id,title,  doi, var_dict):
     """ el parametro data debe corresponder a una lista de ocurrencias 
@@ -351,6 +399,11 @@ def insert_data(occurrencias, dataset_id,title,  doi, var_dict):
         insert_occ_flag = True # si hay algun error en 1 occurencia del datasert, esta bandera hace que no se haga el commint al db por lo tanto no se insetan datos en la base de datos
         i = 1
         occ_count = 1
+        print("insertando las occurrencias del dataset ", dataset_id)     
+        
+        
+        
+        
         for occ in occurrencias:
             occurrence_id = occ['id']
             for key in occ:
@@ -367,16 +420,20 @@ def insert_data(occurrencias, dataset_id,title,  doi, var_dict):
                     insert_occ_flag = False
                     return 0
                 i+=1
-            if insert_occ_flag:
-                try:
-                    print("Insertando occ {}".format(occ_count))
-                    occ_count += 1
-                    connection.commit()
-                    
-                except:
-                    print("error en el commint con las ocurrencias del dataset {}".format(dataset_id))
-                    
-                    return 0
+            
+        if insert_occ_flag:
+            try:
+                #print("Insertando occ {}".format(occ_count))
+                occ_count += 1
+                connection.commit()
+                
+            except:
+                print("error en el commint con las ocurrencias del dataset {}".format(dataset_id))
+                
+                return 0
+        else:
+            print("ERROR: No se pudo insertar")
+            print("occcurrencias del dataset: {}".format(dataset_id))
             
     with open('./data/errores_harvesting.txt', 'a', encoding='utf-8') as file:
         file.write(string_error)
