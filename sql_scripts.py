@@ -1,6 +1,5 @@
 import cx_Oracle
 from datetime import datetime
-import func
 
 vars_obis = [
 'bathymetry',
@@ -229,33 +228,34 @@ vars_obis = [
 'occurrenceStatus',
 'references',
 'infraorderid',
-'brackish']
+'brackish'
+]
 
-IP_DIR = '192.168.3.70'
+IP_DIR = '192.168.3.70' # prod
 #IP_DIR = '10.0.1.101' # dev
 PORT = '1521'
 SID ='SCI'
 
 
 def n():
+    """
+        Funcion usada una sola vez para ingresar las variables de obis en la base dedatos
+        tabla: CMDWC_VARIABLES
+    """
     dsn_connection = cx_Oracle.makedsn('192.168.3.70', port='1521', sid='SCI')
     connection = cx_Oracle.connect(user='CURADOR', password='paque', dsn=dsn_connection,  nencoding = "UTF-8")
     cursor = connection.cursor()
-    TABLA_VARIABLES = "SD_DWC_VARIABLES_AUX" # dev
-    #TABLA_VARIABLES = "CMDWC_VARIABLES" # prod
-    
-    sql = """SELECT NOMBRE FROM CMDWC_VARIABLES"""
+    #TABLA_VARIABLES = "SD_DWC_VARIABLES_AUX" #dev
+    TABLA_VARIABLES = "CMDWC_VARIABLES" # prod
 
-
-
-    cursor.execute('select nombre from :1', (TABLA_VARIABLES))
+    cursor.execute(f'select nombre from {TABLA_VARIABLES}')
 
     list_db_vars = []
     for row in cursor:
         print('row query: ', row)
         list_db_vars.append(row[0])
         
-    #print(list_db_vars)
+    
     print('\n===========================')
     in_db = []
     out_db = []
@@ -280,6 +280,9 @@ def n():
 ######
 
 def create_dic_var():
+    """
+        Funcion que retorna un diccionario con el id y el nombre de las variables en la base de datos
+    """
     dsn_connection = cx_Oracle.makedsn(IP_DIR, port=PORT, sid=SID)
     connection = cx_Oracle.connect(user='CURADOR', password='paque', dsn=dsn_connection,  nencoding = "UTF-8")
     cursor = connection.cursor()
@@ -288,21 +291,29 @@ def create_dic_var():
     vars_list_query =  cursor.execute('SELECT NOMBRE, ID_VARIABLE FROM CMDWC_VARIABLES')
     for row in vars_list_query:
         var_dict[row[0]] = row[1]
-    #print(var_dict)
+    
     connection.close()
     return var_dict
 
 
-# Obtener todos los datasets id que existen en la base de datos para no re-insertarlos
+
 def datasets_id_inv():
+    """Funcion que extrae los datasets id de la base de datos para que no sean incluidos en el harvesting"""
     dsn_connection = cx_Oracle.makedsn(IP_DIR, port=PORT, sid=SID)
     connection = cx_Oracle.connect(user='CURADOR', password='paque', dsn=dsn_connection,  nencoding = "UTF-8")
     cursor = connection.cursor()
-    datasets = [x for x in cursor.execute("SELECT DATASET_ID FROM CMDWC_DATASETS")]
-    print(datasets)
+    datasets = [x[0] for x in cursor.execute("SELECT DATASET_ID FROM CMDWC_DATASETS WHERE UPPER(FUENTE_DATASET) = UPPER('OBIS')")]
+    return datasets
     
-
-
+    
+def delete_dataset(dataset_id):
+    """ Funcion para eliminar un dataset id lo que eliminara en cascada las ocurrencias de este """
+    dsn_connection = cx_Oracle.makedsn(IP_DIR, port=PORT, sid=SID)
+    connection = cx_Oracle.connect(user='CURADOR', password='paque', dsn=dsn_connection,  nencoding = "UTF-8")
+    cursor = connection.cursor()
+    cursor.execute("DELETE FROM cmdwc_datasets WHERE dataset_id = :1", [dataset_id])
+    
+    
 def insert_data(occurrencias, dataset_id,title,  doi, var_dict):
     """ el parametro data debe corresponder a una lista de ocurrencias 
         [
@@ -325,7 +336,6 @@ def insert_data(occurrencias, dataset_id,title,  doi, var_dict):
     sql_insert_fila = "INSERT INTO cmdwc_datasets (dataset_id, data_url, ext_name, fuente_dataset) VALUES (:1, :2, :3, :4)"
     dataset_flag = False
     try:
-        
         #print("to insert: {}, {}, {}".format(dataset_id, doi, title) )
         cursor.execute(sql_insert_fila, [dataset_id, doi, title, 'OBIS'])
         connection.commit()
@@ -380,3 +390,4 @@ if __name__ == '__main__':
     #create_dic_var()
     #create_dic_var()
     datasets_id_inv()
+    #n()
