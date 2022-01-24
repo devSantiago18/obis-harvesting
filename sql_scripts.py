@@ -363,7 +363,7 @@ def insert_occurrence(occurrencias, dataset_id,title,  doi, var_dict):
         
     
 def insert_data(occurrencias, dataset_id,title,  doi, var_dict):
-    """ el parametro data debe corresponder a una lista de ocurrencias 
+    """ el parametro occurrencias debe corresponder a una lista de ocurrencias 
         [
             {occurrenceId : val1, dataset_id : val2, datasetId : val3}
             {occurrenceId : val1, dataset_id : val2, datasetId : val3}
