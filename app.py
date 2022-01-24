@@ -29,52 +29,57 @@ def harvesting():
     total = 0
     i = 0
     dict_vars = sql_scripts.create_dic_var()
+    datasetsid_in_db = func.invemar_datasets()
+    count_inserts = 0
+    
+    print("Estos son los datasers validos: ({})".format(len(datasets_validos)))
+    for d in datasets_validos:
+        dataset_id, title, url_datasert = d
+        if re.search('ipt.biodiversidad.co/sibm', url_datasert):
+            print('ESTA EN EL IPT Nombre: {}  || datasetid : {} || url:  {}'.format(title, dataset_id, url_datasert))
+        elif dataset_id in datasetsid_in_db:
+            print('ESTA EN LA DB  Nombre: {}  || datasetid : {} '.format(title, dataset_id))
+        else:
+            print('Este esta bien Nombre: {}  || datasetid : {} '.format(title, dataset_id))
+            
+            
     for dataset in datasets_validos:
         
         occurrences = []
         max_size = 10000
         dataset_id, title, url_datasert = dataset
         
-        url = "https://api.obis.org/v3/occurrence?areaid=41&datasetid=" + dataset_id
-        response = requests.get(url)
-        size = response.json()['total']
-        
-        total += size
-        last_one = ''
-        
-        while True:
-            if size <= max_size:
-                url2 = url + f'&size={size}&after={last_one}'
-                print("url menos de 10000 ::  ", url2)
-                response2 = requests.get(url2)
-                occurrences.extend(response2.json()['results'])
-                break # este break rompe el while infinito cuando encuentra que el numero de ocrruencias en el datasets es menos a 10.000 y puede traerlas en una sola peticion
-            elif size > max_size:
-                size -= max_size
-                url2 = url + f'&size={max_size}&after={last_one}'
-                print("url mas de 10000 ::  ", url2)
-                response2 = requests.get(url2)
-                occurrences.extend(response2.json()['results'])
-                last_one = response2.json()['results'][-1]['id']
-        
-        flag_dataset_success = sql_scripts.insertar_dataset(dataset_id, title, url_datasert)
-        print("total ", total)
-        total_ocurrencias = len(occurrences)   
-        init_pos = 0
-        max_size = 5000
-        next_pos = max_size
-        while flag_dataset_success:
-            if total_ocurrencias > max_size:
-                sql_scripts.insert_occurrence(occurrences[init_pos:next_pos], dataset_id, title, url_datasert, dict_vars)
-                init_pos += max_size
-                next_pos += max_size
-                total_ocurrencias -= max_size
-                print("insertando las occurrencias del dataset {} ::: occreuncias restantes {}".format(dataset_id,total_ocurrencias) )     
-            elif total_ocurrencias <= max_size:
-                sql_scripts.insert_occurrence(occurrences[init_pos:len(occurrences)], dataset_id, title, url_datasert, dict_vars)
-                    
-        
+        #if not re.search('ipt.biodiversidad.co/sibm', url_datasert):  # este condicional impide que venga cualquier dataset del ipt del siam
+        #if dataset_id in datasetsid_in_db: # si dejamos este condicional traera los que no tenemos en la base de datos, incluso si estan en el ipt del siam
+        if (not  dataset_id in datasetsid_in_db ) and (not re.search('ipt.biodiversidad.co/sibm', url_datasert)): 
+           
+            url = "https://api.obis.org/v3/occurrence?areaid=41&datasetid=" + dataset_id
+            response = requests.get(url)
+            size = response.json()['total']
             
+            total += size
+            last_one = ''
+            
+            while True:
+                if size <= max_size:
+                    url2 = url + f'&size={size}&after={last_one}'
+                    print("url menos de 10000 ::  ", url2)
+                    response2 = requests.get(url2)
+                    occurrences.extend(response2.json()['results'])
+                    break # este break rompe el while infinito cuando encuentra que el numero de ocrruencias en el datasets es menos a 10.000 y puede traerlas en una sola peticion
+                elif size > max_size:
+                    size -= max_size
+                    url2 = url + f'&size={max_size}&after={last_one}'
+                    print("url mas de 10000 ::  ", url2)
+                    response2 = requests.get(url2)
+                    occurrences.extend(response2.json()['results'])
+                    last_one = response2.json()['results'][-1]['id']
+                    
+            sql_scripts.insert_data(occurrences, dataset_id, title, url_datasert, dict_vars)
+            count_inserts += 1
+            
+            
+    print(f"Se insertaron {count_inserts} datasets")
     return jsonify({
         'occurrencias' : 'ok'
     })
@@ -89,11 +94,29 @@ def update_harvesting():
         Si se encuentran en la db, se eliminaran y se re-insertaran 
         Si no estaban en la db, se insertaran normalmente.
     """
-    datasets_validos = func.discard_datasets(True) # todos los datasets incuyendo los que estan en la dv que hacen parte de obis
+    datasets_validos = func.discard_datasets(True) # todos los datasets incuyendo los que estan en la db que hacen parte de obis
     datasetsid_in_db = func.invemar_datasets()
     dict_vars = sql_scripts.create_dic_var()
+    count_inserts = 0
     
     total = 0
+    count_update = 0
+    for d in datasets_validos:
+        dataset_id, title, url_datasert = d
+        if re.search('ipt.biodiversidad.co/sibm', url_datasert):
+            print('ESTA EN EL IPT Nombre: {}  || datasetid : {} || url:  {}'.format(title, dataset_id, url_datasert))
+        elif dataset_id in datasetsid_in_db:
+            print('ESTA EN LA DB  Nombre: {}  || datasetid : {} '.format(title, dataset_id))
+            count_update += 1
+        else:
+            print('Este esta bien Nombre: {}  || datasetid : {} '.format(title, dataset_id))
+            count_update += 1
+
+    print('Para updatear ', count_update)
+    return jsonify({'ok': 'ok'})
+    
+    
+    
     for dataset in datasets_validos:
         occurrences = [] 
         max_size = 10000 # maximo de ocurrencias que se pediran a la api de obis por peticion
@@ -109,24 +132,33 @@ def update_harvesting():
         # eliminamos el dataset si se encuentra en la db, y luego se inserta con los valores nuevos
         if dataset_id in datasetsid_in_db:
             func.delete_datasets(dataset_id)
+            
+        if not re.search('ipt.biodiversidad.co/sibm', url_datasert):  # solo ignoramoms los que estan en el ipt
+           
+            url = "https://api.obis.org/v3/occurrence?areaid=41&datasetid=" + dataset_id
+            response = requests.get(url)
+            size = response.json()['total']
+            
+            total += size
+            last_one = ''
+            
+            while True:
+                if size <= max_size:
+                    url2 = url + f'&size={size}&after={last_one}'
+                    print("url menos de 10000 ::  ", url2)
+                    response2 = requests.get(url2)
+                    occurrences.extend(response2.json()['results'])
+                    break # este break rompe el while infinito cuando encuentra que el numero de ocrruencias en el datasets es menos a 10.000 y puede traerlas en una sola peticion
+                elif size > max_size:
+                    size -= max_size
+                    url2 = url + f'&size={max_size}&after={last_one}'
+                    print("url mas de 10000 ::  ", url2)
+                    response2 = requests.get(url2)
+                    occurrences.extend(response2.json()['results'])
+                    last_one = response2.json()['results'][-1]['id']
                     
-        while True:
-            if size <= max_size:
-                url2 = url + f'&size={size}&after={last_one}'
-                print("url menos de 10000 ::  ", url2)
-                response2 = requests.get(url2)
-                occurrences.extend(response2.json()['results'])
-                break # este break rompe el while infinito cuando encuentra que el numero de ocrruencias en el datasets es menos a 10.000 y puede traerlas en una sola peticion
-            elif size > max_size:
-                size -= max_size
-                url2 = url + f'&size={max_size}&after={last_one}'
-                print("url mas de 10000 ::  ", url2)
-                response2 = requests.get(url2)
-                occurrences.extend(response2.json()['results'])
-                last_one = response2.json()['results'][-1]['id']
-    
-
-
+            sql_scripts.insert_data(occurrences, dataset_id, title, url_datasert, dict_vars)
+            count_inserts += 1            
 
 
 

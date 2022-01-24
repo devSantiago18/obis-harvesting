@@ -24,7 +24,6 @@ import sql_scripts
     # 'bathymetry'
     # ]
 
-
 # Esta funcion busca en OBIS [siempre que el parametro onlyInv sea False] todos los datasetsID que NO hagan parte de los que ya estan en la base de datos
 # en caso de que se le pase como argumento un verdadero, traera todos los datasetsID que tenga OBIS en el areadID 41, incluyendo los que tenemos
 # ya en la base de datos (esto sirve para hacer un full update de los datasets)
@@ -45,7 +44,7 @@ def discard_datasets(onlyInv = False):
     v = {}
     nv = {}
     datasets_id_inv = sql_scripts.datasets_id_inv() # traigo los datasets registrados en la base de datos y descartarlos del harvesting
-    
+    #datasets_id_inv.extend(datasets_id_inv)
     if onlyInv:
         for datasetid in dic_resp:
             datasets_validos.append(( datasetid ,  dic_resp[datasetid][0],  dic_resp[datasetid][1]))

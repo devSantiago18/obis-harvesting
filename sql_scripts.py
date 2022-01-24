@@ -298,7 +298,7 @@ def create_dic_var():
 
 
 def datasets_id_inv():
-    """Funcion que extrae los datasets id de la base de datos para que no sean incluidos en el harvesting"""
+    """Funcion que extrae los datasets id de la base de datos """
     dsn_connection = cx_Oracle.makedsn(IP_DIR, port=PORT, sid=SID)
     connection = cx_Oracle.connect(user='CURADOR', password='paque', dsn=dsn_connection,  nencoding = "UTF-8")
     cursor = connection.cursor()
@@ -387,7 +387,7 @@ def insert_data(occurrencias, dataset_id,title,  doi, var_dict):
         #print("to insert: {}, {}, {}".format(dataset_id, doi, title) )
         cursor.execute(sql_insert_fila, [dataset_id, doi, title, 'OBIS'])
         connection.commit()
-        print("inserto 1 fila {}".format(dataset_id))
+        print("inserto 1 dataset nuevo:  {}".format(dataset_id))
         dataset_flag = True
     except :
         print("Error insertando fila")
@@ -401,9 +401,6 @@ def insert_data(occurrencias, dataset_id,title,  doi, var_dict):
         occ_count = 1
         print("insertando las occurrencias del dataset ", dataset_id)     
         
-        
-        
-        
         for occ in occurrencias:
             occurrence_id = occ['id']
             for key in occ:
@@ -414,7 +411,7 @@ def insert_data(occurrencias, dataset_id,title,  doi, var_dict):
                     cursor.execute(sql_insert_detalle, (occurrence_id, dataset_id, variable, valor))
                     #print("se inserto esta vaina {}:{}:{}:{}".format(occurrence_id, dataset_id, variable, occ[key]))
                 except cx_Oracle.Error as error:
-                    print("Error insertando 1 {} : {} : {} : {}".format(occurrence_id, dataset_id, variable, valor))
+                    print("Error insertando una variable: {} : {} : {} : {}".format(occurrence_id, dataset_id, variable, valor))
                     print(error)
                     string_error += "\nError insertando {}, {}, {}, {}".format(occurrence_id, dataset_id, int(variable), valor)
                     insert_occ_flag = False
@@ -429,7 +426,6 @@ def insert_data(occurrencias, dataset_id,title,  doi, var_dict):
                 
             except:
                 print("error en el commint con las ocurrencias del dataset {}".format(dataset_id))
-                
                 return 0
         else:
             print("ERROR: No se pudo insertar")
