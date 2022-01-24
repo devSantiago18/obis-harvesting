@@ -100,20 +100,20 @@ def update_harvesting():
     count_inserts = 0
     
     total = 0
-    count_update = 0
-    for d in datasets_validos:
-        dataset_id, title, url_datasert = d
-        if re.search('ipt.biodiversidad.co/sibm', url_datasert):
-            print('ESTA EN EL IPT Nombre: {}  || datasetid : {} || url:  {}'.format(title, dataset_id, url_datasert))
-        elif dataset_id in datasetsid_in_db:
-            print('ESTA EN LA DB  Nombre: {}  || datasetid : {} '.format(title, dataset_id))
-            count_update += 1
-        else:
-            print('Este esta bien Nombre: {}  || datasetid : {} '.format(title, dataset_id))
-            count_update += 1
+    # count_update = 0
+    # for d in datasets_validos:
+    #     dataset_id, title, url_datasert = d
+    #     if re.search('ipt.biodiversidad.co/sibm', url_datasert):
+    #         print('ESTA EN EL IPT Nombre: {}  || datasetid : {} || url:  {}'.format(title, dataset_id, url_datasert))
+    #     elif dataset_id in datasetsid_in_db:
+    #         print('ESTA EN LA DB  Nombre: {}  || datasetid : {} '.format(title, dataset_id))
+    #         count_update += 1
+    #     else:
+    #         print('Este esta bien Nombre: {}  || datasetid : {} '.format(title, dataset_id))
+    #         count_update += 1
 
-    print('Para updatear ', count_update)
-    return jsonify({'ok': 'ok'})
+    # print('Para updatear ', count_update)
+    # return jsonify({'ok': 'ok'})
     
     
     
@@ -160,7 +160,9 @@ def update_harvesting():
             sql_scripts.insert_data(occurrences, dataset_id, title, url_datasert, dict_vars)
             count_inserts += 1            
 
-
+    return jsonify({
+        'occurrencias' : 'ok'
+    })
 
 
 

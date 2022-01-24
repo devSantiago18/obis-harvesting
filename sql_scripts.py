@@ -405,7 +405,7 @@ def insert_data(occurrencias, dataset_id,title,  doi, var_dict):
             occurrence_id = occ['id']
             for key in occ:
                 variable = var_dict[key]
-                valor = str(occ[key]) if len(str(occ[key])) < 500 else str(occ[key])[:500]
+                valor = str(occ[key]) if len(str(occ[key])) < 490 else str(occ[key])[:490]
                 try:
                     
                     cursor.execute(sql_insert_detalle, (occurrence_id, dataset_id, variable, valor))
