@@ -29,19 +29,9 @@ def harvesting():
     total = 0
     i = 0
     dict_vars = sql_scripts.create_dic_var()
-    datasetsid_in_db = func.invemar_datasets()
+    
     count_inserts = 0
     
-    print("Estos son los datasers validos: ({})".format(len(datasets_validos)))
-    for d in datasets_validos:
-        dataset_id, title, url_datasert = d
-        if re.search('ipt.biodiversidad.co/sibm', url_datasert):
-            print('ESTA EN EL IPT Nombre: {}  || datasetid : {} || url:  {}'.format(title, dataset_id, url_datasert))
-        elif dataset_id in datasetsid_in_db:
-            print('ESTA EN LA DB  Nombre: {}  || datasetid : {} '.format(title, dataset_id))
-        else:
-            print('Este esta bien Nombre: {}  || datasetid : {} '.format(title, dataset_id))
-            
             
     for dataset in datasets_validos:
         
@@ -51,33 +41,32 @@ def harvesting():
         
         #if not re.search('ipt.biodiversidad.co/sibm', url_datasert):  # este condicional impide que venga cualquier dataset del ipt del siam
         #if dataset_id in datasetsid_in_db: # si dejamos este condicional traera los que no tenemos en la base de datos, incluso si estan en el ipt del siam
-        if (not  dataset_id in datasetsid_in_db ) and (not re.search('ipt.biodiversidad.co/sibm', url_datasert)): 
-           
-            url = "https://api.obis.org/v3/occurrence?areaid=41&datasetid=" + dataset_id
-            response = requests.get(url)
-            size = response.json()['total']
-            
-            total += size
-            last_one = ''
-            
-            while True:
-                if size <= max_size:
-                    url2 = url + f'&size={size}&after={last_one}'
-                    print("url menos de 10000 ::  ", url2)
-                    response2 = requests.get(url2)
-                    occurrences.extend(response2.json()['results'])
-                    break # este break rompe el while infinito cuando encuentra que el numero de ocrruencias en el datasets es menos a 10.000 y puede traerlas en una sola peticion
-                elif size > max_size:
-                    size -= max_size
-                    url2 = url + f'&size={max_size}&after={last_one}'
-                    print("url mas de 10000 ::  ", url2)
-                    response2 = requests.get(url2)
-                    occurrences.extend(response2.json()['results'])
-                    last_one = response2.json()['results'][-1]['id']
-                    
-            sql_scripts.insert_data(occurrences, dataset_id, title, url_datasert, dict_vars)
-            count_inserts += 1
-            
+        
+        url = "https://api.obis.org/v3/occurrence?areaid=41&datasetid=" + dataset_id
+        response = requests.get(url)
+        size = response.json()['total']
+        
+        total += size
+        last_one = ''
+        
+        while True:
+            if size <= max_size:
+                url2 = url + f'&size={size}&after={last_one}'
+                print("url menos de 10000 ::  ", url2)
+                response2 = requests.get(url2)
+                occurrences.extend(response2.json()['results'])
+                break # este break rompe el while infinito cuando encuentra que el numero de ocrruencias en el datasets es menos a 10.000 y puede traerlas en una sola peticion
+            elif size > max_size:
+                size -= max_size
+                url2 = url + f'&size={max_size}&after={last_one}'
+                print("url mas de 10000 ::  ", url2)
+                response2 = requests.get(url2)
+                occurrences.extend(response2.json()['results'])
+                last_one = response2.json()['results'][-1]['id']
+                
+        sql_scripts.insert_data(occurrences, dataset_id, title, url_datasert, dict_vars)
+        count_inserts += 1
+        
             
     print(f"Se insertaron {count_inserts} datasets")
     return jsonify({

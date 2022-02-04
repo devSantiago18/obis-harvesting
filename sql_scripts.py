@@ -370,11 +370,11 @@ def insert_data(occurrencias, dataset_id,title,  doi, var_dict):
         ]
     """
     string_error = ""
-    print(len(occurrencias))
-    print(doi)
-    print(title)
-    print(title)
-    print(dataset_id)
+    # print(len(occurrencias))
+    # print(doi)
+    # print(title)
+    # print(title)
+    # print(dataset_id)
     
     dsn_connection = cx_Oracle.makedsn(IP_DIR, port=PORT, sid=SID)
     connection = cx_Oracle.connect(user='CURADOR', password='paque', dsn=dsn_connection,  nencoding = "UTF-8")
@@ -430,9 +430,7 @@ def insert_data(occurrencias, dataset_id,title,  doi, var_dict):
         else:
             print("ERROR: No se pudo insertar")
             print("occcurrencias del dataset: {}".format(dataset_id))
-            
-    with open('./data/errores_harvesting.txt', 'a', encoding='utf-8') as file:
-        file.write(string_error)
+    
         
     connection.close()
         

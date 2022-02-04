@@ -40,19 +40,22 @@ def discard_datasets(onlyInv = False):
     response = requests.get( url )
     #print('total datasets ', response.json()['total'])
     
-    dic_resp = {x['id'] : (x['title'], x['url'] ) for x in response.json()['results']}
+    dic_resp = response.json()['results']
     v = {}
     nv = {}
     datasets_id_inv = sql_scripts.datasets_id_inv() # traigo los datasets registrados en la base de datos y descartarlos del harvesting
     #datasets_id_inv.extend(datasets_id_inv)
     if onlyInv:
-        for datasetid in dic_resp:
-            datasets_validos.append(( datasetid ,  dic_resp[datasetid][0],  dic_resp[datasetid][1]))
+        for datasetid in dic_resp :
+            if not re.search('ipt.biodiversidad.co/sibm', datasetid['url']):
+                datasets_validos.append(( datasetid['id'],  datasetid['tittle'],  datasetid['url']))
     else:
         for datasetid in dic_resp:
-            if datasetid not in datasets_id_inv:
-                datasets_validos.append(( datasetid ,  dic_resp[datasetid][0],  dic_resp[datasetid][1] ))
+            if (datasetid['id'] not in datasets_id_inv) and (not re.search('ipt.biodiversidad.co/sibm', datasetid['url'])):
+                
+                datasets_validos.append((  datasetid['id'],  datasetid['tittle'],  datasetid['url']))
     return datasets_validos
+
 
 
 
